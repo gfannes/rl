@@ -4,12 +4,15 @@ def norm(p):
 	x, y = p
 	return math.sqrt(x*x+y*y)
 
+def normalize(v):
+	n = norm(v)
+	vx, vy = v
+	return (vx/n, vy/n)
+
 def direction(a, b):
 	ax, ay = a
 	bx, by = b
-	x, y = bx-ax, by-ay
-	n = norm((x, y))
-	return (x/n,  y/n)
+	return normalize((bx-ax, by-ay))
 
 # From https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
 def point_in_triangle(point, triangle):
@@ -57,10 +60,10 @@ def intersection(a, b, c, d):
 
 	return (px/denom, py/denom)
 
-def add(a, b):
+def add(a, b, f = 1.0):
 	ax, ay = a
 	bx, by = b
-	return (ax+bx, ay+by)
+	return (ax+f*bx, ay+f*by)
 
 def diff(a, b):
 	ax, ay = a
@@ -68,4 +71,27 @@ def diff(a, b):
 	return (ax-bx, ay-by)
 
 def distance(a, b):
-	return diff(a, b).norm()
+	return norm(diff(a, b))
+
+# abcd is a ccw quadrilateral
+def intersection_edge(point, direction, a, b, c, d):
+	pa = diff(a, point)
+	pb = diff(b, point)
+	pc = diff(c, point)
+	pd = diff(d, point)
+	da = determinant(pa, direction)
+	db = determinant(pb, direction)
+	dc = determinant(pc, direction)
+	dd = determinant(pd, direction)
+	if da >= 0 and db < 0:
+		return 0
+	if db >= 0 and dc < 0:
+		return 1
+	if dc >= 0 and dd < 0:
+		return 2
+	return 3
+
+def determinant(a, b):
+	ax, ay = a
+	bx, by = b
+	return ax*by - ay*bx
