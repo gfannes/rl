@@ -74,12 +74,13 @@ class Track:
 			return geo.distance(point, edge_point)
 
 class Env:
-	def __init__(self, beam_count):
+	def __init__(self, beam_count, speed = 0.1):
 		self.track = Track.diamond()
 		self.position, self.direction = None, None
 		self.segment_ix, self.observation, self.reward = None, None, None
 		angles = [(i*math.tau)/beam_count for i in range(beam_count)]
 		self.beam_rotations = [((math.cos(angle), -math.sin(angle)), (math.sin(angle), math.cos(angle))) for angle in angles]
+		self.speed = speed
 	def get_observation(self):
 		return self.observation
 	def get_actions(self):
@@ -97,15 +98,14 @@ class Env:
 		dx, dy = self.direction
 		return [(dx*r[0][0] + dy*r[0][1], dx*r[1][0] + dy*r[1][1]) for r in self.beam_rotations]
 	def update_direction_and_position_(self, action):
-		d = 0.5
-		angle = random.uniform(d, d) if action == 0 else random.uniform(-d, -d)
+		d, eps = 0.5, 0.05
+		angle = random.uniform(d-eps, d+eps) if action == 0 else random.uniform(-d-eps, -d+eps)
 		cos, sin = math.cos(angle), math.sin(angle)
 		dx, dy = self.direction
 		new_dir = (dx*cos-dy*sin, dx*sin+dy*cos)
 		self.direction = geo.normalize(new_dir)
-		self.position = geo.add(self.position, self.direction, 0.2)
+		self.position = geo.add(self.position, self.direction, self.speed)
 	def on_changed_state_(self):
-		# print(f"position: {self.position}, direction: {self.direction}")
 		new_segment_ix = self.track.segment_ix(self.position)
 		if new_segment_ix is None:
 			self.observation = None
@@ -113,12 +113,10 @@ class Env:
 			self.reward = None
 		else:
 			if self.segment_ix is None or new_segment_ix == self.segment_ix:
-				self.reward = 0.1
+				self.reward = 0.0
 			elif new_segment_ix == self.track.next_segment_ix(self.segment_ix):
 				self.reward = 1.0
 			else:
 				self.reward = -1.0
 			self.segment_ix = new_segment_ix
 			self.observation = [self.track.distance_to_edge(self.position, beam, new_segment_ix) for beam in self.radar_beams_()]
-			# print(f"reward: {self.reward}, segment_ix: {self.segment_ix}")
-

@@ -20,6 +20,14 @@ class Net(nn.Module):
 			nn.Tanh(),
 			nn.Linear(hidden_size, hidden_size),
 			nn.Tanh(),
+			nn.Linear(hidden_size, hidden_size),
+			nn.Tanh(),
+			nn.Linear(hidden_size, hidden_size),
+			nn.Tanh(),
+			nn.Linear(hidden_size, hidden_size),
+			nn.Tanh(),
+			nn.Linear(hidden_size, hidden_size),
+			nn.Tanh(),
 			nn.Linear(hidden_size, 1),
 			nn.Sigmoid()
 			)
@@ -62,10 +70,10 @@ policy = Net(beam_count, hidden_size)
 objective = nn.MSELoss()
 optimizer = optim.Adam(params=policy.parameters(), lr = 0.01)
 
-def create_steps(n, fraction_to_keep, env, policy):
+def create_steps(n, fraction_to_keep, env, policy, start_segment_ix = None):
 	start_segment_ix__episodes = {}
 	for i in range(n):
-		episode = Episode.create(env, policy)
+		episode = Episode.create(env, policy, start_segment_ix)
 		start_segment_ix__episodes.setdefault(episode.start_segment_ix, []).append(episode)
 	def by_reward(episode):
 		return episode.reward
@@ -81,7 +89,7 @@ def create_steps(n, fraction_to_keep, env, policy):
 
 for i in range(100):
 	print(i)
-	steps = create_steps(200, 0.3, env, policy)
+	steps = create_steps(100, 0.3, env, policy, 0)
 	print(sum(s[2] for s in steps), len(steps))
 	optimizer.zero_grad()
 	obs_v = torch.FloatTensor([s[0] for s in steps])
@@ -90,7 +98,7 @@ for i in range(100):
 	# print(f"tgt_v: {tgt_v}")
 	act_v = policy(obs_v)
 	act_v = torch.reshape(act_v, (act_v.size(dim=0),))
-	print(f"act_v: {act_v}")
+	# print(f"act_v: {act_v}")
 	loss_v = objective(act_v, tgt_v)
 	# print(loss_v)
 	loss_v.backward()
